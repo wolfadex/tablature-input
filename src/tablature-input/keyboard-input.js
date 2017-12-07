@@ -15,7 +15,6 @@ export const ACTIONS = {
   MOVE_ROW_UP: 'MOVE_ROW_UP',
   MOVE_ROW_DOWN: 'MOVE_ROW_DOWN',
   MAKE_COLUMN_BAR: 'MAKE_COLUMN_BAR',
-  NO_ACTION: 'NO_ACTION',
   // TODO: Clear column/row?
 };
 
@@ -35,11 +34,10 @@ const DEFAULT_KEY_TO_ACTIONS = {
   81: ACTIONS.INSERT_COLUMN_LEFT, // q
   '-': ACTIONS.CLEAR_CELL_VALUE,
   '|': ACTIONS.MAKE_COLUMN_BAR,
-  9: ACTIONS.NO_ACTION,
 };
 
 const literalChars = [
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+  'num-0', 'num-1', 'num-2', 'num-3', 'num-4', 'num-5', 'num-6', 'num-7', 'num-8', 'num-9',
   'h', 'p', 'b', 'r', '\\', '/', 'v', 't', 'x',
   '~',
 ];
@@ -53,7 +51,7 @@ const DEFAULT_MOUSE_TO_ACTIONS = {
 export const eventToAction = ({ shiftKey, altKey, key, keyCode, button }) => {
   console.log('key', key);
   if (key != null || keyCode != null) {
-    return DEFAULT_KEY_TO_ACTIONS[`${altKey ? 'alt-' : ''}${key}`] ||
+    return DEFAULT_KEY_TO_ACTIONS[`${altKey ? 'alt-' : ''}${Number.isInteger(Number(key)) ? 'num-' : ''}${key}`] ||
       DEFAULT_KEY_TO_ACTIONS[`${altKey ? 'alt-' : ''}${keyCode}`];
   }
 
