@@ -1,0 +1,7 @@
+.wrapper:focus {
+  outline: 1px solid red;
+}
+
+.cell:hover {
+  background: rgb(175, 217, 244);
+}
