@@ -1,4 +1,5 @@
 import React, { Component, Fragment } from 'react';
+import PropTypes from 'prop-types';
 import { eventToAction, ACTIONS } from './keyboard-input';
 import { dataToText } from './utils';
 import './style.css';
@@ -31,7 +32,58 @@ const initializeData = (c, r) => {
   return data;
 };
 
+const handleNextRowColumn = ({
+  currentRow,
+  currentColumn,
+  moveNextRow,
+  moveNextColumn,
+  notes,
+  data,
+}) => {
+  let nextColumn = currentColumn;
+  let nextRow = currentRow;
+
+  if (moveNextColumn) {
+    nextColumn += 1;
+
+    if (nextColumn >= data.length) {
+      nextColumn = 0;
+      nextRow += 1;
+    }
+
+    if (nextRow >= notes.length) {
+      nextRow = 0;
+    }
+  } else if (moveNextRow) {
+    nextRow += 1;
+
+    if (nextRow >= notes.length) {
+      nextRow = 0;
+      nextColumn += 1;
+    }
+
+    if (nextColumn >= data.length) {
+      nextColumn = 0;
+    }
+  }
+
+  return {
+    nextRow,
+    nextColumn,
+  };
+};
+
 class TablatureInput extends Component {
+  static propTypes = {
+    nextRowOnSetValue: PropTypes.bool,
+    nextColumnOnSetValue: PropTypes.bool,
+  }
+
+  static defaultProps = {
+    nextRowOnSetValue: false,
+    nextColumnOnSetValue: true,
+  }
+
   state = {
     data: initializeData(20, 5),
     focusRow: 0,
@@ -86,19 +138,48 @@ class TablatureInput extends Component {
         }));
         break;
       case ACTIONS.SET_CELL_VALUE:
-        this.setState(({ focusRow, focusColumn, data }) => {
+        this.setState(({ focusRow, focusColumn, data, notes }, { nextRowOnSetValue, nextColumnOnSetValue }) => {
+          const {
+            nextRow,
+            nextColumn,
+          } = handleNextRowColumn({
+            currentRow: focusRow,
+            currentColumn: focusColumn,
+            moveNextRow: nextRowOnSetValue,
+            moveNextColumn: nextColumnOnSetValue,
+            notes,
+            data,
+          });
+
           data[focusColumn][focusRow] = e.key;
+
           return {
             data,
+            focusColumn: nextColumn,
+            focusRow: nextRow,
           };
         });
         break;
       case ACTIONS.CLEAR_CELL_VALUE:
-        this.setState(({ focusRow, focusColumn, data }) => {
+        this.setState(({ focusRow, focusColumn, data, notes }, { nextRowOnSetValue, nextColumnOnSetValue }) => {
+          const {
+            nextRow,
+            nextColumn,
+          } = handleNextRowColumn({
+            currentRow: focusRow,
+            currentColumn: focusColumn,
+            moveNextRow: nextRowOnSetValue,
+            moveNextColumn: nextColumnOnSetValue,
+            notes,
+            data,
+          });
+
           data[focusColumn][focusRow] = null;
-          // TODO: Clears whole row, that's not right
+
           return {
             data,
+            focusColumn: nextColumn,
+            focusRow: nextRow,
           };
         });
         break;
