@@ -13,10 +13,33 @@ export const dataToText = (notes = [], data = [[]]) => {
 
 export const textToData = (text) => {
   const rows = text.split('\n');
-  const notes = new Array(rows.length);
-  // TODO: Actually parse data
+  const notes = [];
+  const data = [];
+
+  rows.forEach((row, i) => {
+    const [
+      note,
+      ...chars
+    ] = row.split('|');
+    const joinedChars = chars.join('|');
+
+    notes.push(note);
+
+    for (let c = 0; c < joinedChars.length; c++) {
+      if (data[c] == null) {
+        data.push([]);
+      }
+
+      if (row[c] === '-') {
+        data[c].push(null);
+      } else {
+        data[c].push(row[c]);
+      }
+    }
+  });
+
   return {
     notes,
-    data: [notes],
+    data,
   };
 };

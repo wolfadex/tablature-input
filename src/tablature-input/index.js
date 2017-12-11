@@ -7,7 +7,15 @@ import './style.css';
 const styles = {
   wrapper: {
     display: 'grid',
+    gridGap: '1rem',
+    gridTemplateColumns: '1fr'
+  },
+  row: {
+    display: 'grid',
     gridGap: '0rem',
+    gridColumnStart: '1',
+    gridColumnEnd: 'span 1',
+    gridRowEnd: 'span 1',
   },
   noteList: {
     gridColumnStart: '1',
@@ -88,15 +96,27 @@ class TablatureInput extends Component {
   static propTypes = {
     nextRowOnSetValue: PropTypes.bool,
     nextColumnOnSetValue: PropTypes.bool,
+    className: PropTypes.string,
+    style: PropTypes.object,
+    rowWrapLength: PropTypes.number,
+    initialData: PropTypes.arrayOf(PropTypes.array),
+    initialDataString: PropTypes.string,
   }
 
   static defaultProps = {
     nextRowOnSetValue: false,
     nextColumnOnSetValue: true,
+    className: '',
+    style: {},
+    rowWrapLength: 20,
+    initialData: [],
+    initialDataString: '',
   }
 
   state = {
-    data: initializeData(20, 5),
+    data: this.props.initialData.length > 0 ? this.props.initialData :
+          this.props.initialDataString !== '' ? this.props.initialDataString :
+          initializeData(this.props.rowWrapLength, 5),
     focusRow: 0,
     focusColumn: 0,
     notes: ['A', 'B', 'C', 'D', 'F#'],
@@ -399,6 +419,8 @@ class TablatureInput extends Component {
     const {
       className,
       style,
+      rowStyle,
+      rowWrapLength,
     } = this.props;
     const {
       data = [],
@@ -406,80 +428,101 @@ class TablatureInput extends Component {
       focusRow,
       focusColumn,
     } = this.state;
+    const numTablatureRows = Math.floor(data.length / rowWrapLength) + Math.sign(data.length % rowWrapLength);
+    const tabRowsToRender = ['row'];
+
+    // TODO
+    // for (let i = 0; i < numTablatureRows; i++) {
+    //   tabRowsToRender.push('row');
+    // }
 
     return (
       <div
-        className={`wrapper ${className}`}
+        className="tablature-input-wrapper"
         style={{
           ...style,
           ...styles.wrapper,
-          //          Columns:  Key    Bar    Notes
-          gridTemplateColumns: `1.1rem 1.1rem ${data.map(() => '1.1rem').join(' ')}`,
-          gridTemplateRows: notes.map(() => '1.1rem').join(' '),
+          gridTemplateRows: `${numTablatureRows}fr`,
         }}
         tabIndex="0"
         onKeyDown={this.handleKeyDown}
       >
-        {notes.map((note, rowNumber) =>
-          <Fragment key={`note-name-${rowNumber}`}>
-            <input
-              style={{
-                ...styles.noteList,
-                gridRowStart: `${rowNumber + 1}`,
-              }}
-              value={note}
-              onChange={this.handleNoteChange(rowNumber)}
-            />
+        {
+          tabRowsToRender.map((tabRow, i) =>
             <div
+              key={i}
+              className={`tablature-input-row ${className}`}
               style={{
-                ...styles.cell,
-                gridColumnStart: '2',
-                gridColumnEnd: 'span 1',
-                gridRowStart: `${rowNumber + 1}`,
-                gridRowEnd: 'span 1',
+                ...rowStyle,
+                ...styles.row,
+                gridRowStart: `${i + 1}`,
+                //          Columns:  Key    Bar    Notes
+                gridTemplateColumns: `1.1rem 1.1rem ${data.map(() => '1.1rem').join(' ')}`,
+                gridTemplateRows: notes.map(() => '1.1rem').join(' '),
               }}
             >
-              |
-            </div>
-          </Fragment>
-        )}
-        {data.map((columnData, columnNumber) =>
-          (columnData || []).map((cellData, rowNumber) => {
-            const hasFocus = focusRow === rowNumber && focusColumn === columnNumber;
-            const isEmpty = cellData == null;
+              {notes.map((note, rowNumber) =>
+                <Fragment key={`note-name-${rowNumber}`}>
+                  <input
+                    style={{
+                      ...styles.noteList,
+                      gridRowStart: `${rowNumber + 1}`,
+                    }}
+                    value={note}
+                    onChange={this.handleNoteChange(rowNumber)}
+                  />
+                  <div
+                    style={{
+                      ...styles.cell,
+                      gridColumnStart: '2',
+                      gridColumnEnd: 'span 1',
+                      gridRowStart: `${rowNumber + 1}`,
+                      gridRowEnd: 'span 1',
+                    }}
+                  >
+                    |
+                  </div>
+                </Fragment>
+              )}
+              {data.map((columnData, columnNumber) =>
+                (columnData || []).map((cellData, rowNumber) => {
+                  const hasFocus = focusRow === rowNumber && focusColumn === columnNumber;
+                  const isEmpty = cellData == null;
 
-            return (
-              <div
-                key={`note-${columnNumber}-${rowNumber}`}
-                className="cell"
-                style={{
-                  ...styles.cell,
-                  gridColumnStart: `${columnNumber + 3}`,
-                  gridColumnEnd: 'span 1',
-                  gridRowStart: `${rowNumber + 1}`,
-                  gridRowEnd: 'span 1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onClick={this.handleClick(columnNumber, rowNumber)}
-              >
-                <div
-                  style={{
-                    backgroundColor: hasFocus ? 'rgb(175, 217, 244)' : '#fff',
-                    border: isEmpty ? '1px solid black' : '0',
-                    flex: '1',
-                    height: hasFocus || !isEmpty ? '1rem' : '0px',
-                    margin: '0 0.1rem',
-                    transition: '0.2s',
-                  }}
-                >
-                  {!isEmpty && cellData}
-                </div>
-              </div>
-            );
-          })
-        )}
+                  return (
+                    <div
+                      key={`note-${columnNumber}-${rowNumber}`}
+                      className="tablature-input-cell"
+                      style={{
+                        ...styles.cell,
+                        gridColumnStart: `${columnNumber + 3}`,
+                        gridColumnEnd: 'span 1',
+                        gridRowStart: `${rowNumber + 1}`,
+                        gridRowEnd: 'span 1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onClick={this.handleClick(columnNumber, rowNumber)}
+                    >
+                      <div
+                        style={{
+                          backgroundColor: hasFocus ? 'rgb(175, 217, 244)' : '#fff',
+                          border: isEmpty ? '1px solid black' : '0',
+                          flex: '1',
+                          height: hasFocus || !isEmpty ? '1rem' : '0px',
+                          margin: '0 0.1rem',
+                          transition: '0.2s',
+                        }}
+                      >
+                        {!isEmpty && cellData}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
       </div>
     );
   }
