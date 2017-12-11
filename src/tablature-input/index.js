@@ -73,6 +73,17 @@ const handleNextRowColumn = ({
   };
 };
 
+const pushNewData = ({ stateHistory, data }) => {
+  const newStateHistory = stateHistory.splice(0);
+
+  newStateHistory.push(data);
+
+  return {
+    stateHistory: newStateHistory,
+    stateFuture: [],
+  };
+};
+
 class TablatureInput extends Component {
   static propTypes = {
     nextRowOnSetValue: PropTypes.bool,
@@ -89,6 +100,8 @@ class TablatureInput extends Component {
     focusRow: 0,
     focusColumn: 0,
     notes: ['A', 'B', 'C', 'D', 'F#'],
+    stateHistory: [],
+    stateFuture: [],
   }
 
   handleClick = (focusColumn, focusRow) => (e) => {
@@ -138,7 +151,11 @@ class TablatureInput extends Component {
         }));
         break;
       case ACTIONS.SET_CELL_VALUE:
-        this.setState(({ focusRow, focusColumn, data, notes }, { nextRowOnSetValue, nextColumnOnSetValue }) => {
+        this.setState((
+          state,
+          { nextRowOnSetValue, nextColumnOnSetValue },
+        ) => {
+          const { focusRow, focusColumn, data, notes } = state;
           const {
             nextRow,
             nextColumn,
@@ -150,18 +167,32 @@ class TablatureInput extends Component {
             notes,
             data,
           });
+          const newData = data.map(
+            (column, c) => column.map(
+              (cell, r) => {
+                if (focusColumn === c && focusRow === r) {
+                  return e.key;
+                }
 
-          data[focusColumn][focusRow] = e.key;
+                return cell;
+              }
+            )
+          );
 
           return {
-            data,
+            data: newData,
+            ...pushNewData(state),
             focusColumn: nextColumn,
             focusRow: nextRow,
           };
         });
         break;
       case ACTIONS.CLEAR_CELL_VALUE:
-        this.setState(({ focusRow, focusColumn, data, notes }, { nextRowOnSetValue, nextColumnOnSetValue }) => {
+        this.setState((
+          state,
+          { nextRowOnSetValue, nextColumnOnSetValue },
+        ) => {
+          const { focusRow, focusColumn, data, notes } = state;
           const {
             nextRow,
             nextColumn,
@@ -173,18 +204,29 @@ class TablatureInput extends Component {
             notes,
             data,
           });
+          const newData = data.map(
+            (column, c) => column.map(
+              (cell, r) => {
+                if (focusColumn === c && focusRow === r) {
+                  return null;
+                }
 
-          data[focusColumn][focusRow] = null;
+                return cell;
+              }
+            )
+          );
 
           return {
-            data,
+            data: newData,
+            ...pushNewData(state),
             focusColumn: nextColumn,
             focusRow: nextRow,
           };
         });
         break;
       case ACTIONS.INSERT_COLUMN_RIGHT:
-        this.setState(({ focusColumn, notes, data }) => {
+        this.setState((state) => {
+          const { focusColumn, notes, data } = state;
           const column = [];
 
           for (let i = 0; i < notes.length; i++) {
@@ -195,11 +237,13 @@ class TablatureInput extends Component {
 
           return {
             data,
+            ...pushNewData(state),
           };
         });
         break;
       case ACTIONS.INSERT_COLUMN_LEFT:
-        this.setState(({ focusColumn, notes, data }) => {
+        this.setState((state) => {
+          const { focusColumn, notes, data } = state;
           const column = [];
 
           for (let i = 0; i < notes.length; i++) {
@@ -211,33 +255,44 @@ class TablatureInput extends Component {
           return {
             data,
             focusColumn: focusColumn + 1,
+            ...pushNewData(state),
           };
         });
         break;
       case ACTIONS.DELETE_COLUMN:
-        this.setState(({ focusColumn, notes, data }) => {
+        this.setState((state) => {
+          const { data } = state;
+
           if (data.length > 1) {
+            const { focusColumn, notes } = state;
+
             data.splice(focusColumn, 1);
 
             return {
               data,
+              ...pushNewData(state),
               focusColumn: focusColumn >= data.length ? focusColumn - 1 : focusColumn,
             };
           }
         });
         break;
       case ACTIONS.DUPLICATE_COLUMN:
-        this.setState(({ focusColumn, data }) => {
+        this.setState((state) => {
+          const { focusColumn, data } = state;
+
           data.splice(focusColumn + 1, 0, data[focusColumn]);
 
           return {
             data,
+            ...pushNewData(state),
             focusColumn: focusColumn + 1,
           };
         });
         break;
       case ACTIONS.MOVE_COLUMN_RIGHT:
-        this.setState(({ focusColumn, data }) => {
+        this.setState((state) => {
+          const { focusColumn, data } = state;
+
           if (focusColumn < data.length - 1) {
             const toMove = [...data[focusColumn]];
 
@@ -246,14 +301,18 @@ class TablatureInput extends Component {
 
             return {
               data,
+              ...pushNewData(state),
               focusColumn: focusColumn + 1,
             };
           }
         });
         break;
       case ACTIONS.MOVE_COLUMN_LEFT:
-        this.setState(({ focusColumn, data }) => {
+        this.setState((state) => {
+          const { focusColumn } = state;
+
           if (focusColumn > 0) {
+            const { data } = state;
             const toMove = [...data[focusColumn]];
 
             data.splice(focusColumn, 1);
@@ -261,21 +320,60 @@ class TablatureInput extends Component {
 
             return {
               data,
+              ...pushNewData(state),
               focusColumn: focusColumn - 1,
             };
           }
         });
         break;
       case ACTIONS.MAKE_COLUMN_BAR:
-        this.setState(({ focusColumn, data}) => {
+        this.setState((state) => {
+          const { focusColumn, data} = state;
           const bar = data[focusColumn].map(() => '|');
 
           data.splice(focusColumn, 1, bar);
 
           return {
             data,
+            ...pushNewData(state),
           };
         })
+        break;
+      case ACTIONS.UNDO_STATE:
+        e.preventDefault();
+        this.setState(({ stateHistory, stateFuture , data }) => {
+          if (stateHistory.length > 0) {
+            const newStateHistory = stateHistory.splice(0);
+            const newStateFuture = stateFuture.splice(0);
+            const newData = newStateHistory.pop();
+
+            newStateFuture.push(data);
+
+            return {
+              data: newData,
+              stateHistory: newStateHistory,
+              stateFuture: newStateFuture,
+            };
+          }
+        });
+        break;
+      case ACTIONS.REDO_STATE:
+        e.preventDefault();
+        this.setState(({ stateHistory, stateFuture , data }) => {
+          if (stateFuture.length > 0) {
+            const newStateHistory = stateHistory.splice(0);
+            const newStateFuture = stateFuture.splice(0);
+            const newData = newStateFuture.pop();
+
+            newStateHistory.push(data);
+
+            return {
+              data: newData,
+              stateHistory: newStateHistory,
+              stateFuture: newStateFuture,
+            };
+          }
+        });
         break;
       case ACTIONS.NO_ACTION:
         break;

@@ -15,6 +15,8 @@ export const ACTIONS = {
   MOVE_ROW_UP: 'MOVE_ROW_UP',
   MOVE_ROW_DOWN: 'MOVE_ROW_DOWN',
   MAKE_COLUMN_BAR: 'MAKE_COLUMN_BAR',
+  UNDO_STATE: 'UNDO_STATE',
+  REDO_STATE: 'REDO_STATE',
   // TODO: Clear column/row?
 };
 
@@ -49,8 +51,33 @@ const DEFAULT_MOUSE_TO_ACTIONS = {
   0: ACTIONS.FOCUS_EXACT,
 };
 
-export const eventToAction = ({ shiftKey, altKey, key, keyCode, button }) => {
-  console.log('key', key);
+const isMac = () => navigator.platform.indexOf('Mac') > -1;
+
+export const eventToAction = ({
+  shiftKey,
+  altKey,
+  metaKey,
+  ctrlKey,
+  key,
+  keyCode,
+  button,
+}) => {
+  if (isMac()) {
+    if (metaKey && key === 'z') {
+      if (shiftKey) {
+        return ACTIONS.REDO_STATE;
+      }
+
+      return ACTIONS.UNDO_STATE;
+    }
+  } else {
+    if (ctrlKey && key === 'z') {
+      return ACTIONS.UNDO_STATE;
+    } else if (ctrlKey && key === 'y') {
+      return ACTIONS.REDO_STATE;
+    }
+  }
+
   if (key != null || keyCode != null) {
     return DEFAULT_KEY_TO_ACTIONS[`${altKey ? 'alt-' : ''}${Number.isInteger(Number(key)) ? 'num-' : ''}${key}`] ||
       DEFAULT_KEY_TO_ACTIONS[`${altKey ? 'alt-' : ''}${keyCode}`];
